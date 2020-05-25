@@ -79,6 +79,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\DeadEarth\Scripts\AIWaypointNetwork.cs" />
+    <Compile Include="Assets\DeadEarth\Scripts\Controller.cs" />
+    <Compile Include="Assets\DeadEarth\Scripts\SmoothCamera.cs" />
     <Compile Include="Assets\Navigation Example\DoorAniDemo.cs" />
     <Compile Include="Assets\Navigation Example\NavmeshExample.cs" />
   </ItemGroup>
