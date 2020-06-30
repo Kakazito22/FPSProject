@@ -9,7 +9,7 @@ public abstract class AIState : MonoBehaviour {
     public virtual void OnExitState() { }
     public virtual void OnAnimatorUpdated() { }
     public virtual void OnAnimatorIKUpdated() { }
-    public virtual void OnTriggerEvent() { }
+    public virtual void OnTriggerEvent(AiTriggerEventType eventType, Collider other) { }
     public virtual void OnDestnationReached(bool isReached) { }
 
 

@@ -5,6 +5,7 @@ using UnityEngine.AI;
 
 public enum AIStateType { None, Idle, Alerted, Patrol, Attack, Feeding, Pursuit, Dead}
 public enum AITargetType { None, WayPoint, Visual_Player, Visual_Light, Visual_Food, Audio}
+public enum AiTriggerEventType { Enter, Stay, Exit }
 
 public struct AITarget
 {
@@ -43,6 +44,7 @@ public abstract class AIStateMachine : MonoBehaviour {
     public AITarget visualThreat = new AITarget();
     public AITarget audioThreat = new AITarget();
 
+    // 保存object上的所有AIState
     protected Dictionary<AIStateType, AIState> _allStates = new Dictionary<AIStateType, AIState>();
     protected AITarget _target = new AITarget();
     protected AIState _currentState = null;
@@ -63,10 +65,23 @@ public abstract class AIStateMachine : MonoBehaviour {
         _ani = GetComponent<Animator>();
         _navAgent = GetComponent<NavMeshAgent>();
         _collider = GetComponent<Collider>();
+
+        if (GameSceneManager.Instance != null)
+        {
+            if (_collider)
+                GameSceneManager.Instance.RegisterAIStateMachines(_collider.GetInstanceID(), this);
+            if (_sensorTrigger)
+                GameSceneManager.Instance.RegisterAIStateMachines(_sensorTrigger.GetInstanceID(), this);
+        }
     }
 
     protected virtual void Start()
     {
+        if (_sensorTrigger != null)
+        {
+            AISensor sensor = _sensorTrigger.GetComponent<AISensor>();
+        }
+
         // 获取物体上所有的AIState
         AIState[] states = GetComponents<AIState>();
 
@@ -75,10 +90,19 @@ public abstract class AIStateMachine : MonoBehaviour {
             if (s != null && !_allStates.ContainsKey(s.GetStateType()))
             {
                 _allStates[s.GetStateType()] = s;
+                s.SetStateMachine(this);
             }
         }
 
-
+        if (_allStates.ContainsKey(_currentStateType))
+        {
+            _currentState = _allStates[_currentStateType];
+            _currentState.OnEnterState();
+        }
+        else
+        {
+            _currentState = null;
+        }
     }
 
     protected virtual void FixedUpdate()
@@ -100,7 +124,7 @@ public abstract class AIStateMachine : MonoBehaviour {
         if (newStateType != _currentStateType)
         {
             AIState newState = null;
-            if (_allStates.TryGetValue(_currentStateType, out newState))
+            if (_allStates.TryGetValue(newStateType, out newState))
             {
                 _currentState.OnExitState();
                 newState.OnEnterState();
@@ -113,6 +137,27 @@ public abstract class AIStateMachine : MonoBehaviour {
             }
             _currentStateType = newStateType;
         }
+    }
+
+    protected virtual void OnTriggerEnter(Collider other)
+    {
+        if (_targetTrigger == null || _targetTrigger != other) return;
+
+        if (_currentState)
+            _currentState.OnDestnationReached(true);
+    }
+
+    protected virtual void OnTriggerExit(Collider other)
+    {
+        if (_targetTrigger == null || _targetTrigger != other) return;
+        if (_currentState)
+            _currentState.OnDestnationReached(false);
+    }
+
+    public virtual void OnTriggerEvent(AiTriggerEventType type, Collider other)
+    {
+        if (_currentState != null)
+            _currentState.OnTriggerEvent(type, other);
     }
 
     public void SetTarget(AITargetType t, Collider c, Vector3 p, float d)
